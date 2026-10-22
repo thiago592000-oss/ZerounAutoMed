@@ -22,28 +22,50 @@ jobs:
 
       - name: Verificar arquivos
         run: |
-          echo "Arquivos do repositório:"
-          ls -la
+          echo "LOCAL ATUAL:"
+          pwd
+
           echo ""
-          echo "Procurando o ZIP:"
-          find . -maxdepth 3 -type f -name "*.zip" -print
+          echo "ARQUIVOS DO REPOSITÓRIO:"
+          find . -maxdepth 5 -type f -print
+
+          echo ""
+          echo "PROCURANDO ZIP:"
+          find . -type f -iname "*.zip" -print
 
       - name: Extrair projeto
         run: |
-          mkdir projeto
-          unzip -q "./AutomatedNotificacoes.zip" -d projeto
+          ZIP=$(find . -type f -iname "*.zip" | head -n 1)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERRO: nenhum arquivo ZIP encontrado."
+            exit 1
+          fi
+
+          echo "ZIP ENCONTRADO: $ZIP"
+
+          mkdir -p projeto
+          unzip -q "$ZIP" -d projeto
 
       - name: Localizar projeto Android
         run: |
-          echo "Procurando settings.gradle..."
-          find projeto -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print
+          echo "Procurando projeto Android..."
 
-          SETTINGS=$(find projeto -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
+          find projeto -type f \( \
+            -name "settings.gradle" \
+            -o -name "settings.gradle.kts" \
+          \) -print
+
+          SETTINGS=$(find projeto -type f \( \
+            -name "settings.gradle" \
+            -o -name "settings.gradle.kts" \
+          \) | head -n 1)
 
           if [ -z "$SETTINGS" ]; then
             echo "ERRO: nenhum settings.gradle ou settings.gradle.kts foi encontrado."
-            echo "Conteúdo do ZIP:"
-            find projeto -maxdepth 5 -type f | head -300
+            echo ""
+            echo "Conteúdo extraído:"
+            find projeto -maxdepth 6 -type f -print
             exit 1
           fi
 
