@@ -20,58 +20,42 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Verificar arquivos
-        run: |
-          echo "LOCAL ATUAL:"
-          pwd
-
-          echo ""
-          echo "ARQUIVOS DO REPOSITÓRIO:"
-          find . -maxdepth 5 -type f -print
-
-          echo ""
-          echo "PROCURANDO ZIP:"
-          find . -type f -iname "*.zip" -print
-
-      - name: Extrair projeto
+      - name: Encontrar e extrair ZIP
         run: |
           ZIP=$(find . -type f -iname "*.zip" | head -n 1)
 
           if [ -z "$ZIP" ]; then
-            echo "ERRO: nenhum arquivo ZIP encontrado."
+            echo "ERRO: nenhum ZIP encontrado."
             exit 1
           fi
 
-          echo "ZIP ENCONTRADO: $ZIP"
+          echo "ZIP encontrado: $ZIP"
 
           mkdir -p projeto
           unzip -q "$ZIP" -d projeto
 
-      - name: Localizar projeto Android
+      - name: Encontrar projeto Android
         run: |
-          echo "Procurando projeto Android..."
+          echo "Procurando app/build.gradle..."
 
-          find projeto -type f \( \
-            -name "settings.gradle" \
-            -o -name "settings.gradle.kts" \
-          \) -print
-
-          SETTINGS=$(find projeto -type f \( \
-            -name "settings.gradle" \
-            -o -name "settings.gradle.kts" \
+          APP_GRADLE=$(find projeto -type f \( \
+            -path "*/app/build.gradle" \
+            -o -path "*/app/build.gradle.kts" \
           \) | head -n 1)
 
-          if [ -z "$SETTINGS" ]; then
-            echo "ERRO: nenhum settings.gradle ou settings.gradle.kts foi encontrado."
+          if [ -z "$APP_GRADLE" ]; then
+            echo "ERRO: app/build.gradle ou app/build.gradle.kts não encontrado."
             echo ""
-            echo "Conteúdo extraído:"
-            find projeto -maxdepth 6 -type f -print
+            echo "Arquivos encontrados:"
+            find projeto -maxdepth 8 -type f -print
             exit 1
           fi
 
-          ANDROID_PROJECT=$(dirname "$SETTINGS")
+          ANDROID_PROJECT=$(dirname "$(dirname "$APP_GRADLE")")
 
-          echo "Projeto encontrado em: $ANDROID_PROJECT"
+          echo "Arquivo encontrado: $APP_GRADLE"
+          echo "Projeto Android: $ANDROID_PROJECT"
+
           echo "ANDROID_PROJECT=$ANDROID_PROJECT" >> "$GITHUB_ENV"
 
       - name: Instalar Gradle
@@ -79,10 +63,15 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Ver tarefas Gradle
+        run: |
+          cd "$ANDROID_PROJECT"
+          gradle tasks --all --no-daemon
+
       - name: Compilar APK
         run: |
           cd "$ANDROID_PROJECT"
-          gradle assembleDebug --no-daemon --stacktrace
+          gradle :app:assembleDebug --no-daemon --stacktrace
 
       - name: Enviar APK
         uses: actions/upload-artifact@v4
