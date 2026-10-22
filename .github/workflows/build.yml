@@ -20,10 +20,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Verificar arquivos
+        run: |
+          echo "Arquivos do repositório:"
+          ls -la
+          echo ""
+          echo "Procurando o ZIP:"
+          find . -maxdepth 3 -type f -name "*.zip" -print
+
       - name: Extrair projeto
         run: |
           mkdir projeto
-          unzip -q AutomatedNotificacoes.zip -d projeto
+          unzip -q "./AutomatedNotificacoes.zip" -d projeto
 
       - name: Localizar projeto Android
         run: |
@@ -35,7 +43,7 @@ jobs:
           if [ -z "$SETTINGS" ]; then
             echo "ERRO: nenhum settings.gradle ou settings.gradle.kts foi encontrado."
             echo "Conteúdo do ZIP:"
-            find projeto -maxdepth 4 -type f | head -200
+            find projeto -maxdepth 5 -type f | head -300
             exit 1
           fi
 
